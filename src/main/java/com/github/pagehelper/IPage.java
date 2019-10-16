@@ -24,32 +24,15 @@
 
 package com.github.pagehelper;
 
-import org.apache.ibatis.session.RowBounds;
-
 /**
- * @author liuzenghui
+ * @author liuzh
  */
-public class PageRowBounds extends RowBounds {
-    private Long total;
-    private Boolean count;
+public interface IPage {
 
-    public PageRowBounds(int offset, int limit) {
-        super(offset, limit);
-    }
+    Integer getPageNum();
 
-    public Long getTotal() {
-        return total;
-    }
+    Integer getPageSize();
 
-    public void setTotal(Long total) {
-        this.total = total;
-    }
+    String getOrderBy();
 
-    public Boolean getCount() {
-        return count;
-    }
-
-    public void setCount(Boolean count) {
-        this.count = count;
-    }
 }

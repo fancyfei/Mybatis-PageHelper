@@ -24,6 +24,7 @@
 
 package com.github.pagehelper.util;
 
+import com.github.pagehelper.IPage;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageException;
 import org.apache.ibatis.reflection.MetaObject;
@@ -42,7 +43,7 @@ public abstract class PageObjectUtil {
     protected static Boolean hasRequest;
     protected static Class<?> requestClass;
     protected static Method getParameterMap;
-    protected static Map<String, String> PARAMS = new HashMap<String, String>(5);
+    protected static Map<String, String> PARAMS = new HashMap<String, String>(6, 1);
 
     static {
         try {
@@ -55,6 +56,7 @@ public abstract class PageObjectUtil {
         PARAMS.put("pageNum", "pageNum");
         PARAMS.put("pageSize", "pageSize");
         PARAMS.put("count", "countSql");
+        PARAMS.put("orderBy", "orderBy");
         PARAMS.put("reasonable", "reasonable");
         PARAMS.put("pageSizeZero", "pageSizeZero");
     }
@@ -66,12 +68,29 @@ public abstract class PageObjectUtil {
      * @return
      */
     public static <T> Page<T> getPageFromObject(Object params, boolean required) {
-        int pageNum;
-        int pageSize;
-        MetaObject paramsObject = null;
         if (params == null) {
             throw new PageException("无法获取分页查询参数!");
         }
+        if(params instanceof IPage){
+            IPage pageParams = (IPage) params;
+            Page page = null;
+            if(pageParams.getPageNum() != null && pageParams.getPageSize() != null){
+                page = new Page(pageParams.getPageNum(), pageParams.getPageSize());
+            }
+            if (StringUtil.isNotEmpty(pageParams.getOrderBy())) {
+                if(page != null){
+                    page.setOrderBy(pageParams.getOrderBy());
+                } else {
+                    page = new Page();
+                    page.setOrderBy(pageParams.getOrderBy());
+                    page.setOrderByOnly(true);
+                }
+            }
+            return page;
+        }
+        int pageNum;
+        int pageSize;
+        MetaObject paramsObject = null;
         if (hasRequest && requestClass.isAssignableFrom(params.getClass())) {
             try {
                 paramsObject = MetaObjectUtil.forObject(getParameterMap.invoke(params, new Object[]{}));
@@ -84,22 +103,37 @@ public abstract class PageObjectUtil {
         if (paramsObject == null) {
             throw new PageException("分页查询参数处理失败!");
         }
+        Object orderBy = getParamValue(paramsObject, "orderBy", false);
+        boolean hasOrderBy = false;
+        if (orderBy != null && orderBy.toString().length() > 0) {
+            hasOrderBy = true;
+        }
         try {
             Object _pageNum = getParamValue(paramsObject, "pageNum", required);
             Object _pageSize = getParamValue(paramsObject, "pageSize", required);
             if (_pageNum == null || _pageSize == null) {
+                if(hasOrderBy){
+                    Page page = new Page();
+                    page.setOrderBy(orderBy.toString());
+                    page.setOrderByOnly(true);
+                    return page;
+                }
                 return null;
             }
             pageNum = Integer.parseInt(String.valueOf(_pageNum));
             pageSize = Integer.parseInt(String.valueOf(_pageSize));
         } catch (NumberFormatException e) {
-            throw new PageException("分页参数不是合法的数字类型!");
+            throw new PageException("分页参数不是合法的数字类型!", e);
         }
         Page page = new Page(pageNum, pageSize);
         //count查询
         Object _count = getParamValue(paramsObject, "count", false);
         if (_count != null) {
             page.setCount(Boolean.valueOf(String.valueOf(_count)));
+        }
+        //排序
+        if (hasOrderBy) {
+            page.setOrderBy(orderBy.toString());
         }
         //分页合理化
         Object reasonable = getParamValue(paramsObject, "reasonable", false);

@@ -24,9 +24,17 @@
 
 package com.github.pagehelper.dialect.helper;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.ibatis.cache.CacheKey;
+import org.apache.ibatis.mapping.BoundSql;
+import org.apache.ibatis.mapping.MappedStatement;
+
 import com.github.pagehelper.Page;
 import com.github.pagehelper.dialect.AbstractHelperDialect;
-import org.apache.ibatis.cache.CacheKey;
+import com.github.pagehelper.util.MetaObjectUtil;
 
 /**
  * @author liuzh
@@ -34,25 +42,25 @@ import org.apache.ibatis.cache.CacheKey;
 public class OracleDialect extends AbstractHelperDialect {
 
     @Override
+    public Object processPageParameter(MappedStatement ms, Map<String, Object> paramMap, Page page, BoundSql boundSql, CacheKey pageKey) {
+        paramMap.put(PAGEPARAMETER_FIRST, page.getEndRow());
+        paramMap.put(PAGEPARAMETER_SECOND, page.getStartRow());
+        //处理pageKey
+        pageKey.update(page.getEndRow());
+        pageKey.update(page.getStartRow());
+        //处理参数配置
+        handleParameter(boundSql, ms);
+        return paramMap;
+    }
+
+    @Override
     public String getPageSql(String sql, Page page, CacheKey pageKey) {
         StringBuilder sqlBuilder = new StringBuilder(sql.length() + 120);
-        if (page.getStartRow() > 0) {
-            sqlBuilder.append("SELECT * FROM ( ");
-        }
-        if (page.getEndRow() > 0) {
-            sqlBuilder.append(" SELECT TMP_PAGE.*, ROWNUM ROW_ID FROM ( ");
-        }
+        sqlBuilder.append("SELECT * FROM ( ");
+        sqlBuilder.append(" SELECT TMP_PAGE.*, ROWNUM ROW_ID FROM ( ");
         sqlBuilder.append(sql);
-        if (page.getEndRow() > 0) {
-            sqlBuilder.append(" ) TMP_PAGE WHERE ROWNUM <= ");
-            sqlBuilder.append(page.getEndRow());
-            pageKey.update(page.getEndRow());
-        }
-        if (page.getStartRow() > 0) {
-            sqlBuilder.append(" ) WHERE ROW_ID > ");
-            sqlBuilder.append(page.getStartRow());
-            pageKey.update(page.getStartRow());
-        }
+        sqlBuilder.append(" ) TMP_PAGE)");
+        sqlBuilder.append(" WHERE ROW_ID <= ? AND ROW_ID > ?");
         return sqlBuilder.toString();
     }
 

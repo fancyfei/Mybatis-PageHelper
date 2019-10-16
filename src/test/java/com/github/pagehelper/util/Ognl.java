@@ -22,34 +22,11 @@
  * THE SOFTWARE.
  */
 
-package com.github.pagehelper;
-
-import org.apache.ibatis.session.RowBounds;
-
-/**
- * @author liuzenghui
+package com.github.pagehelper.util;/**
+ * @author liuzh
  */
-public class PageRowBounds extends RowBounds {
-    private Long total;
-    private Boolean count;
-
-    public PageRowBounds(int offset, int limit) {
-        super(offset, limit);
-    }
-
-    public Long getTotal() {
-        return total;
-    }
-
-    public void setTotal(Long total) {
-        this.total = total;
-    }
-
-    public Boolean getCount() {
-        return count;
-    }
-
-    public void setCount(Boolean count) {
-        this.count = count;
+public class Ognl {
+    public static boolean isNotNull(Object obj) {
+        return obj != null;
     }
 }

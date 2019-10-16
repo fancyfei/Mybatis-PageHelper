@@ -24,6 +24,7 @@
 
 package com.github.pagehelper;
 
+import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,7 +35,7 @@ import java.util.List;
  * @version 3.6.0
  *          项目地址 : http://git.oschina.net/free/Mybatis_PageHelper
  */
-public class Page<E> extends ArrayList<E> {
+public class Page<E> extends ArrayList<E> implements Closeable {
     private static final long serialVersionUID = 1L;
 
     /**
@@ -73,11 +74,18 @@ public class Page<E> extends ArrayList<E> {
      * 当设置为true的时候，如果pagesize设置为0（或RowBounds的limit=0），就不执行分页，返回全部结果
      */
     private Boolean pageSizeZero;
-
     /**
      * 进行count查询的列名
      */
     private String countColumn;
+    /**
+     * 排序
+     */
+    private String orderBy;
+    /**
+     * 只增加排序
+     */
+    private boolean orderByOnly;
 
     public Page() {
         super();
@@ -190,7 +198,9 @@ public class Page<E> extends ArrayList<E> {
         }
         //分页合理化，针对不合理的页码自动处理
         if ((reasonable != null && reasonable) && pageNum > pages) {
-            pageNum = pages;
+            if(pages!=0){
+                pageNum = pages;
+            }
             calculateStartAndEndRow();
         }
     }
@@ -221,6 +231,22 @@ public class Page<E> extends ArrayList<E> {
             this.pageSizeZero = pageSizeZero;
         }
         return this;
+    }
+    public String getOrderBy() {
+        return orderBy;
+    }
+
+    public <E> Page<E> setOrderBy(String orderBy) {
+        this.orderBy = orderBy;
+        return (Page<E>) this;
+    }
+
+    public boolean isOrderByOnly() {
+        return orderByOnly;
+    }
+
+    public void setOrderByOnly(boolean orderByOnly) {
+        this.orderByOnly = orderByOnly;
     }
 
     /**
@@ -308,15 +334,14 @@ public class Page<E> extends ArrayList<E> {
         return this;
     }
 
-
-    /**
-     * 转换为PageInfo
-     *
-     * @return
-     */
     public PageInfo<E> toPageInfo() {
         PageInfo<E> pageInfo = new PageInfo<E>(this);
         return pageInfo;
+    }
+
+    public PageSerializable<E> toPageSerializable() {
+        PageSerializable<E> serializable = new PageSerializable<E>(this);
+        return serializable;
     }
 
     public <E> Page<E> doSelectPage(ISelect select) {
@@ -327,6 +352,11 @@ public class Page<E> extends ArrayList<E> {
     public <E> PageInfo<E> doSelectPageInfo(ISelect select) {
         select.doSelect();
         return (PageInfo<E>) this.toPageInfo();
+    }
+
+    public <E> PageSerializable<E> doSelectPageSerializable(ISelect select) {
+        select.doSelect();
+        return (PageSerializable<E>) this.toPageSerializable();
     }
 
     public long doCount(ISelect select) {
@@ -356,6 +386,11 @@ public class Page<E> extends ArrayList<E> {
                 ", pages=" + pages +
                 ", reasonable=" + reasonable +
                 ", pageSizeZero=" + pageSizeZero +
-                '}';
+                '}' + super.toString();
+    }
+
+    @Override
+    public void close() {
+        PageHelper.clearPage();
     }
 }

@@ -22,11 +22,29 @@
  * THE SOFTWARE.
  */
 
+package com.github.pagehelper.dialect.replace;
+
+import com.github.pagehelper.dialect.ReplaceSql;
+
 /**
+ * 简单处理 with(nolock)
+ *
  * @author liuzh
+ * @since 2017/8/23.
  */
-public class Ognl {
-    public static boolean isNotNull(Object obj) {
-        return obj != null;
+public class SimpleWithNolockReplaceSql implements ReplaceSql {
+
+    //with(nolock)
+    protected String WITHNOLOCK = ", PAGEWITHNOLOCK";
+
+    @Override
+    public String replace(String sql) {
+        return sql.replaceAll("((?i)with\\s*\\(nolock\\))", WITHNOLOCK);
     }
+
+    @Override
+    public String restore(String sql) {
+        return sql.replaceAll(WITHNOLOCK, " with(nolock)");
+    }
+
 }
